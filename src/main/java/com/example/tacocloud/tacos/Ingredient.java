@@ -1,24 +1,33 @@
 package com.example.tacocloud.tacos;
 
-import jakarta.persistence.Entity;
+
 import lombok.*;
-import jakarta.persistence.Id;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 @Data
-@Entity
-@NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
-@AllArgsConstructor
+@NoArgsConstructor
+@RequiredArgsConstructor
+@EqualsAndHashCode(exclude = "id")
+@Document(collection = "ingredients")
 public class Ingredient {
 
     @Id
-    private  String id;
+    private String id;
 
-    private  String name;
+    @Indexed(unique = true)
+    private @NonNull String slug;
 
-    private  Type type;
+    @Indexed(unique = true)
+    private @NonNull String name;
+
+    @Indexed(unique = true)
+    private @NonNull Type type;
 
     public enum Type {
         WRAP, PROTEIN, VEGGIES, CHEESE, SAUCE
     }
+
 
 }

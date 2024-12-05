@@ -48,7 +48,7 @@ public class RestIngredientService implements IngredientService {
 
     private ClientHttpRequestInterceptor
     getBearerTokenInterceptor(String accessToken) {
-        return (request, bytes, execution) -> {request.getHeaders().add("Authorization", STR."Bearer \{accessToken}"); return execution.execute(request, bytes);};
+        return (request, bytes, execution) -> {request.getHeaders().add("Authorization", "Bearer " + accessToken); return execution.execute(request, bytes);};
     }
 
     @Override

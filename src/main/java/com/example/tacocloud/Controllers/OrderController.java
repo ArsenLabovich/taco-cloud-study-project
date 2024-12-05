@@ -5,25 +5,25 @@ import com.example.tacocloud.Repositories.UserRepository;
 import com.example.tacocloud.Security.User;
 import com.example.tacocloud.tacos.TacoOrder;
 import com.example.tacocloud.Repositories.OrderRepository;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.validation.Errors;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.SessionAttributes;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.support.SessionStatus;
+import reactor.core.publisher.Mono;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Controller
@@ -44,40 +44,64 @@ public class OrderController {
         this.orderProperties = orderProperties;
     }
 
+    @ModelAttribute(name = "tacoOrder")
+    public TacoOrder tacoOrder() {
+        return new TacoOrder();
+    }
+
     @GetMapping("/current")
-    public String orderForm() {
+    public String orderForm(@ModelAttribute TacoOrder tacoOrder) {
         return "orderform";
     }
 
-    @Transactional
     @PostMapping("/current")
-    public String processOrder(@Valid TacoOrder order, Errors errors, SessionStatus sessionStatus) {
-        if(errors.hasErrors()){
-            return "orderform";
+    public Mono<String> processOrder(@Valid TacoOrder order, Errors errors, SessionStatus sessionStatus) {
+        if (errors.hasErrors()) {
+            return Mono.just("orderform");
         }
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User attachedUser;
-        if(authentication.getPrincipal().getClass()==User.class){
-            User currentUser = (User) authentication.getPrincipal();
-            attachedUser = userRepository.findById(currentUser.getId()).orElseThrow(() -> new RuntimeException("User not found"));
-        }else{
+
+        Mono<User> attachedUserMono;
+        if (authentication.getPrincipal() instanceof User currentUser) {
+            attachedUserMono = userRepository.findById(currentUser.getId());
+        } else {
             DefaultOAuth2User oAuth2User = (DefaultOAuth2User) authentication.getPrincipal();
-            attachedUser = userRepository.findByUsername(oAuth2User.getName());
+            attachedUserMono = userRepository.findByUsername(oAuth2User.getName());
         }
-        order.setUser(attachedUser);
+
+        attachedUserMono.flatMap(attachedUser -> {order.setUser(attachedUser); return null;});
+        if(order.getId() == null){
+            for(Long i = 0L; i < Long.MAX_VALUE; i++){
+                if(orderRepository.findById(String.valueOf(i)).block() == null){
+                    order.setId(String.valueOf(i));
+                    break;
+                }
+            }
+        }
         orderRepository.save(order);
-        log.info("Order submitted: {}", order);
         sessionStatus.setComplete();
-        return "redirect:/orders/myorders";
+        return Mono.just("redirect:/orders/myorders");
+/*                .doOnNext(o -> log.info("Order submitted: {}", o))
+                .then(Mono.just("redirect:/orders/myorders"))
+                .doOnTerminate(sessionStatus::setComplete)
+                .subscribe();*/
+        /*return attachedUserMono.flatMap(attachedUser -> {
+                    order.setUser(attachedUser);
+                    return orderRepository.save(order)
+                            .doOnNext(o -> log.info("Order submitted: {}", o))
+                            .then(Mono.just("redirect:/orders/myorders"));
+                })
+                .switchIfEmpty(Mono.error(new RuntimeException("User not found")));*/
     }
 
-    @Transactional
+
     @GetMapping("/myorders")
     public String ordersForUser(
             @AuthenticationPrincipal User user, Model model) {
-        Pageable pageable = PageRequest.of(0, orderProperties.getPageSize());
-        model.addAttribute("orders",
-                orderRepository.findByUserOrderByPlacedAtDesc(user, pageable));
+        List<TacoOrder> list = new ArrayList<>();
+        orderRepository.findByUserId(user.getId()).subscribe(list::add);
+        model.addAttribute("orders",list);
         return "orderList";
     }
 }

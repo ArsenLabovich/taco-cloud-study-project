@@ -5,16 +5,18 @@ import com.example.tacocloud.tacos.Ingredient.Type;
 import com.example.tacocloud.tacos.Taco;
 import com.example.tacocloud.tacos.TacoOrder;
 import com.example.tacocloud.Repositories.IngredientRepository;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.Files;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,16 +33,22 @@ public class DesignTacoController {
         this.ingredientRepo = ingredientRepo;
     }
 
-    @Transactional
     @ModelAttribute
     public void addIngredientsToModel(Model model) {
-        Iterable<Ingredient> ingredients = ingredientRepo.findAll();
+        List<Ingredient> ingredients = Objects.requireNonNull(ingredientRepo.findAll()
+                        .collectList()
+                        .block())
+                .stream()
+                .distinct()
+                .collect(Collectors.toList());  // Убираем дубликаты
         Type[] types = Ingredient.Type.values();
         for (Type type : types) {
             model.addAttribute(type.toString().toLowerCase(),
-                    filterByType((List<Ingredient>) ingredients, type));
+                    filterByType(ingredients, type));
         }
     }
+
+
 
     @ModelAttribute(name = "tacoOrder")
     public TacoOrder order() {

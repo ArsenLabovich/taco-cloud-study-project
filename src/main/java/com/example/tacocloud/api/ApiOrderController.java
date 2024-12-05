@@ -1,6 +1,5 @@
 package com.example.tacocloud.api;
 import com.example.tacocloud.Repositories.OrderRepository;
-/*import com.example.tacocloud.jms.OrderMessagingService;*/
 import com.example.tacocloud.jms.OrderMessagingService;
 import com.example.tacocloud.tacos.TacoOrder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 
 @RestController
@@ -32,18 +33,18 @@ public class ApiOrderController {
 
 
     @GetMapping
-    public Iterable<TacoOrder> allIngredients() {
+    public Flux<TacoOrder> allIngredients() {
         return orderRepository.findAll();
     }
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TacoOrder saveIngredient(@RequestBody TacoOrder tacoOrder) {
+    public Mono<TacoOrder> saveIngredient(@RequestBody TacoOrder tacoOrder) {
         messageService.sendOrder(tacoOrder);
         return orderRepository.save(tacoOrder);
     }
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteIngredient(@PathVariable("id") Long orderId) {
-        orderRepository.deleteById(orderId);
+    public void deleteIngredient(@PathVariable("id") String orderId) {
+        orderRepository.deleteById(orderId).block();
     }
 }

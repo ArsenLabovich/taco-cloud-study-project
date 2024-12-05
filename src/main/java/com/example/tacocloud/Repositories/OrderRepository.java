@@ -1,15 +1,12 @@
 package com.example.tacocloud.Repositories;
 
-import com.example.tacocloud.Security.User;
-import com.example.tacocloud.tacos.Taco;
 import com.example.tacocloud.tacos.TacoOrder;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
 
-import java.util.List;
+@Repository
+public interface OrderRepository extends ReactiveMongoRepository<TacoOrder, String> {
 
-public interface OrderRepository extends CrudRepository<TacoOrder, Long> {
-    List<TacoOrder> findByUserOrderByPlacedAtDesc(User user, Pageable pageable);
-    Page<Taco> findAll(Pageable pageable);
+    Flux<TacoOrder> findByUserId(String userID);
 }

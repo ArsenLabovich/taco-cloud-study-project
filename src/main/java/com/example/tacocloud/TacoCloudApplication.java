@@ -1,10 +1,10 @@
 package com.example.tacocloud;
 
+import com.example.tacocloud.Repositories.IngredientRepository;
 import com.example.tacocloud.Repositories.OrderRepository;
 import com.example.tacocloud.Repositories.TacoRepository;
 import com.example.tacocloud.Repositories.UserRepository;
 import com.example.tacocloud.tacos.Ingredient;
-import com.example.tacocloud.Repositories.IngredientRepository;
 import com.example.tacocloud.tacos.Taco;
 import com.example.tacocloud.tacos.TacoOrder;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -12,83 +12,62 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 
-import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 @SpringBootApplication
+@EnableReactiveMongoRepositories(basePackages = "com.example.tacocloud.Repositories")
 public class TacoCloudApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(TacoCloudApplication.class, args);
     }
+
     @Bean
     public Jackson2JsonMessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();
     }
+
     @Bean
     public CommandLineRunner dataLoader(IngredientRepository ingredientRepository,
                                         UserRepository userRepository,
                                         TacoRepository tacoRepository,
                                         OrderRepository orderRepository) {
         return args -> {
-            Ingredient flourTortilla = new Ingredient(
-                    "FLTO", "Flour Tortilla", Ingredient.Type.WRAP);
-            Ingredient cornTortilla = new Ingredient(
-                    "COTO", "Corn Tortilla", Ingredient.Type.WRAP);
-            Ingredient groundBeef = new Ingredient(
-                    "GRBF", "Ground Beef", Ingredient.Type.PROTEIN);
-            Ingredient carnitas = new Ingredient(
-                    "CARN", "Carnitas", Ingredient.Type.PROTEIN);
-            Ingredient tomatoes = new Ingredient(          "TMTO", "Diced Tomatoes", Ingredient.Type.VEGGIES);
-            Ingredient lettuce = new Ingredient(
-                    "LETC", "Lettuce", Ingredient.Type.VEGGIES);
-            Ingredient cheddar = new Ingredient(
-                    "CHED", "Cheddar", Ingredient.Type.CHEESE);
-            Ingredient jack = new Ingredient(
-                    "JACK", "Monterrey Jack", Ingredient.Type.CHEESE);
-            Ingredient salsa = new Ingredient(
-                    "SLSA", "Salsa", Ingredient.Type.SAUCE);
-            Ingredient sourCream = new Ingredient(
-                    "SRCR", "Sour Cream", Ingredient.Type.SAUCE);
-            ingredientRepository.save(flourTortilla);
-            ingredientRepository.save(cornTortilla);
-            ingredientRepository.save(groundBeef);
-            ingredientRepository.save(carnitas);
-            ingredientRepository.save(tomatoes);
-            ingredientRepository.save(lettuce);
-            ingredientRepository.save(cheddar);
-            ingredientRepository.save(jack);
-            ingredientRepository.save(salsa);
-            ingredientRepository.save(sourCream);
-            Taco taco1 = new Taco();
-            taco1.setName("Carnivore");
-            taco1.setIngredients(Arrays.asList(
-                    flourTortilla, groundBeef, carnitas,
-                    sourCream, salsa, cheddar));
-            tacoRepository.save(taco1);
-            Taco taco2 = new Taco();
-            taco2.setName("Bovine Bounty");
-            taco2.setIngredients(Arrays.asList(
-                    cornTortilla, groundBeef, cheddar,
-                    jack, sourCream));
-            tacoRepository.save(taco2);
-            Taco taco3 = new Taco();
-            taco3.setName("Veg-Out");
-            taco3.setIngredients(Arrays.asList(
-                    flourTortilla, cornTortilla, tomatoes,
-                    lettuce, salsa));
-            tacoRepository.save(taco3);
-            TacoOrder order = new TacoOrder();
-            order.setDeliveryName("John Doe");
-            order.setDeliveryStreet("123 Main St");
-            order.setDeliveryCity("Springfield");
-            order.setDeliveryState("IL");
-            order.setDeliveryZip("62704");
-            order.setCcNumber("4111111111111111");
-            order.setCcExpiration("12/25");
-            order.setCcCVV("123");
-            orderRepository.save(order);
+            Ingredient flourTortilla = new Ingredient("FLTO", "Flour Tortilla", Ingredient.Type.WRAP);
+            Ingredient cornTortilla = new Ingredient("COTO", "Corn Tortilla", Ingredient.Type.WRAP);
+            Ingredient groundBeef = new Ingredient("GRBF", "Ground Beef", Ingredient.Type.PROTEIN);
+            Ingredient carnitas = new Ingredient("CARN", "Carnitas", Ingredient.Type.PROTEIN);
+            Ingredient tomatoes = new Ingredient(        "TMTO", "Diced Tomatoes", Ingredient.Type.VEGGIES);
+            Ingredient lettuce = new Ingredient("LETC", "Lettuce", Ingredient.Type.VEGGIES);
+            Ingredient cheddar = new Ingredient("CHED", "Cheddar", Ingredient.Type.CHEESE);
+            Ingredient jack = new Ingredient("JACK", "Monterrey Jack", Ingredient.Type.CHEESE);
+            Ingredient salsa = new Ingredient("SLSA", "Salsa", Ingredient.Type.SAUCE);
+            Ingredient sourCream = new Ingredient("SRCR", "Sour Cream", Ingredient.Type.SAUCE);
+            ingredientRepository.findBySlug(flourTortilla.getName())
+                    .switchIfEmpty(ingredientRepository.save(flourTortilla)).block();
+            ingredientRepository.findBySlug(cornTortilla.getName())
+                    .switchIfEmpty(ingredientRepository.save(cornTortilla)).block();
+            ingredientRepository.findBySlug(groundBeef.getName())
+                    .switchIfEmpty(ingredientRepository.save(groundBeef)).block();
+            ingredientRepository.findBySlug(carnitas.getName())
+                    .switchIfEmpty(ingredientRepository.save(carnitas)).block();
+            ingredientRepository.findBySlug(tomatoes.getName())
+                    .switchIfEmpty(ingredientRepository.save(tomatoes)).block();
+            ingredientRepository.findBySlug(lettuce.getName())
+                    .switchIfEmpty(ingredientRepository.save(lettuce)).block();
+            ingredientRepository.findBySlug(cheddar.getName())
+                    .switchIfEmpty(ingredientRepository.save(cheddar)).block();
+            ingredientRepository.findBySlug(jack.getName())
+                    .switchIfEmpty(ingredientRepository.save(jack)).block();
+            ingredientRepository.findBySlug(salsa.getName())
+                    .switchIfEmpty(ingredientRepository.save(salsa)).block();
+            ingredientRepository.findBySlug(sourCream.getName())
+                    .switchIfEmpty(ingredientRepository.save(sourCream)).block();
         };
     }
+
 
 }

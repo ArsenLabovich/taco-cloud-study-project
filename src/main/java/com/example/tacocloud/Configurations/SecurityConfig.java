@@ -4,7 +4,6 @@ import com.example.tacocloud.Repositories.UserRepository;
 import com.example.tacocloud.Security.User;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -33,11 +32,10 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Transactional
     @Bean
     public UserDetailsService userDetailsService(UserRepository userRepository) {
         return username -> {
-            User user = userRepository.findByUsername(username);
+            User user = userRepository.findByUsername(username).block();
             if (user != null) return user;
             throw new UsernameNotFoundException("User ‘%s’ not found".formatted(username));
         };
@@ -61,13 +59,15 @@ public class SecurityConfig {
                 )
                 .formLogin(formLogin -> formLogin
                         .loginPage("/login")
+                        .defaultSuccessUrl("/design", true)
                         .permitAll()
                 )
-               .oauth2Login(oauth2 -> oauth2
-                       .loginPage("/login")
-                       .defaultSuccessUrl("/design", true)
-                       .userInfoEndpoint(userInfoEndpoint -> userInfoEndpoint.userService(oauth2UserService(passwordEncoder,userRepository)))
-               )
+                .oauth2Login().and()
+                .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/design", true)
+                        .userInfoEndpoint(userInfoEndpoint -> userInfoEndpoint.userService(oauth2UserService(passwordEncoder,userRepository)))
+                )
                 .oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt)
                 .logout(logout -> logout.logoutSuccessUrl("/"))
                 .cors()
@@ -81,7 +81,7 @@ public class SecurityConfig {
         return request -> {
             OAuth2User oauth2User = delegate.loadUser(request);
             User user = new User(oauth2User.getName(), passwordEncoder.encode(oauth2User.getName()),oauth2User.getName(),"unknown","unknown","unknown","unknown","unknown");
-            userRepository.save(user);
+            userRepository.save(user).block();
             return new DefaultOAuth2User(
                     Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
                     oauth2User.getAttributes(),
